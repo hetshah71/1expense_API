@@ -7,8 +7,11 @@
         </router-link>
         
         <nav class="app-nav">
-          <router-link to="/" class="nav-link">Dashboard</router-link>
-          <router-link to="/expenses" class="nav-link">Expenses</router-link>
+          <router-link v-if="isLoggedIn" to="/" class="nav-link">Dashboard</router-link>
+          <router-link v-if="isLoggedIn" to="/expenses" class="nav-link">Expenses</router-link>
+          <router-link to="/login" class="nav-link">Login</router-link>
+          <router-link to="/register" class="nav-link">Register</router-link>
+          <router-link v-if="isLoggedIn" to="/logout" class="nav-link">Logout</router-link>
         </nav>
       </div>
     </header>

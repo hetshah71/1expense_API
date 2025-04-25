@@ -2,10 +2,17 @@
 
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 
 
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class,'login']);
 
-Route::apiResource('expenses', ExpenseController::class);
-Route::apiResource('groups', GroupController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('expenses', ExpenseController::class);
+    Route::apiResource('groups', GroupController::class);
+    Route::post('/logout', [AuthController::class,'logout']);
+});
+
