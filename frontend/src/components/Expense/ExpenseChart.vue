@@ -49,16 +49,17 @@ const groupedExpenses = computed(() => {
   const groups = {};
   
   props.expenses.forEach(expense => {
-    if (!groups[expense.group]) {
-      groups[expense.group] = {
-        name: expense.group,
+    const groupId = expense.group.id;
+    if (!groups[groupId]) {
+      groups[groupId] = {
+        name: expense.group.name,
         total: 0,
         expenses: []
       };
     }
     
-    groups[expense.group].total += expense.amount;
-    groups[expense.group].expenses.push(expense);
+    groups[groupId].total += expense.amount;
+    groups[groupId].expenses.push(expense);
   });
   
   return Object.values(groups).sort((a, b) => b.total - a.total);
@@ -92,16 +93,31 @@ const createChart = () => {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          display: false
+          display: true,
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            usePointStyle: true,
+            pointStyle: 'circle'
+          }
         },
         tooltip: {
           callbacks: {
             label: function(context) {
-              return `${context.label}: ₹${context.raw}`;
+              const value = context.raw.toLocaleString('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+              });
+              const percentage = ((context.raw / context.dataset.data.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
+              return `${context.label}: ${value} (${percentage}%)`;
             }
           }
         }
-      }
+      },
+      cutout: '60%',
+      radius: '90%'
     }
   });
 };

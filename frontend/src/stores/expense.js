@@ -14,22 +14,58 @@ export const useExpenseStore = defineStore('expenses', () => {
 
   // Getters
   const totalExpense = computed(() => {
-    return expenses.value.reduce((total, expense) => total + expense.amount, 0)
+    return parseFloat(expenses.value.reduce((total, expense) => total + parseFloat(expense.amount), 0).toFixed(2))
+  })
+
+  const currentMonthExpense = computed(() => {
+    const currentMonth = moment().format('YYYY-MM')
+    return parseFloat(expenses.value.reduce((total, expense) => {
+      return moment(expense.date).format('YYYY-MM') === currentMonth ? total + parseFloat(expense.amount) : total
+    }, 0).toFixed(2))
+  })
+
+  const monthlyExpenseSummary = computed(() => {
+    const summary = {}
+    expenses.value.forEach(expense => {
+      const monthKey = moment(expense.date).format('YYYY-MM')
+      if (!summary[monthKey]) {
+        summary[monthKey] = {
+          total: 0,
+          count: 0,
+          month: moment(monthKey).format('MMMM YYYY'),
+          expenses: []
+        }
+      }
+      summary[monthKey].total = parseFloat((summary[monthKey].total + parseFloat(expense.amount)).toFixed(2))
+      summary[monthKey].count++
+      summary[monthKey].expenses.push(expense)
+    })
+    return Object.values(summary).sort((a, b) => 
+      moment(b.month, 'MMMM YYYY').diff(moment(a.month, 'MMMM YYYY'))
+    )
   })
 
   const highestExpense = computed(() => {
-    if (expenses.value.length === 0) return null
-    return [...expenses.value].sort((a, b) => b.amount - a.amount)[0]
+    return expenses.value.reduce((highest, expense) => {
+      return (!highest || expense.amount > highest.amount) ? expense : highest
+    }, null)
   })
 
   // Functions
   function getMonthlyExpenses(monthStr) {
-    return expenses.value.filter((exp) => moment(exp.date).format('YYYY-MM') === monthStr)
+    return expenses.value
+      .filter((exp) => moment(exp.date).format('YYYY-MM') === monthStr)
+      .map(exp => ({
+        ...exp,
+        amount: parseFloat(exp.amount)
+      }))
+      .sort((a, b) => moment(b.date).diff(moment(a.date)))
   }
 
   function getMonthlyTotal(monthStr) {
-    const monthlyExpenses = getMonthlyExpenses(monthStr)
-    return monthlyExpenses.reduce((total, exp) => total + exp.amount, 0)
+    return parseFloat(expenses.value.reduce((total, expense) => {
+      return moment(expense.date).format('YYYY-MM') === monthStr ? total + parseFloat(expense.amount) : total
+    }, 0).toFixed(2))
   }
 
   // Actions
@@ -226,6 +262,8 @@ export const useExpenseStore = defineStore('expenses', () => {
     expenses,
     // Getters
     totalExpense,
+    currentMonthExpense,
+    monthlyExpenseSummary,
     highestExpense,
     isLoading,
     error,

@@ -63,7 +63,9 @@
     </div>
 
     <div class="dashboard-actions">
-      <Button @click="$router.push('/expenses')">Manage Expenses</Button>
+      <Button @click="handleExportToPDF" class="action-button">Export PDF</Button>
+      <Button @click="handleExportToCSV" class="action-button">Export CSV</Button>
+      <Button @click="$router.push('/expenses')" class="action-button">Manage Expenses</Button>
     </div>
   </div>
 </template>
@@ -74,12 +76,21 @@ import { useExpenseStore } from '../stores/expense.js'
 import ExpenseChart from '../components/Expense/ExpenseChart.vue'
 import Button from '../components/Shared/Button.vue'
 import moment from 'moment'
+import { exportToPDF, exportToCSV } from '../utils/exportUtils'
 
 const expenseStore = useExpenseStore()
 const selectedMonth = ref(moment().format('YYYY-MM'))
 
 const monthlyExpenses = computed(() => expenseStore.getMonthlyExpenses(selectedMonth.value))
 const monthlyTotal = computed(() => expenseStore.getMonthlyTotal(selectedMonth.value))
+
+const handleExportToPDF = () => {
+  exportToPDF(monthlyExpenses.value, selectedMonth.value)
+}
+
+const handleExportToCSV = () => {
+  exportToCSV(monthlyExpenses.value, selectedMonth.value)
+}
 
 const currentMonthTotal = computed(() => {
   const currentMonth = moment().format('YYYY-MM')
@@ -227,7 +238,12 @@ onMounted(() => {
 .dashboard-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 1rem;
   margin-top: 2rem;
+}
+
+.action-button {
+  min-width: 120px;
 }
 
 @media (max-width: 768px) {
