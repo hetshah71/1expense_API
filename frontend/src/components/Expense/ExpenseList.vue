@@ -65,7 +65,7 @@ const selectedExpense = ref(null);
 const selectedIndex = ref(null);
 
 const handleEdit = ({ expense, index }) => {
-  console.log('Editing expense:', expense, 'at index:', index);
+  // console.log('Editing expense:', expense, 'at index:', index);
   selectedExpense.value = { expense, index };
   showEditModal.value = true;
 };

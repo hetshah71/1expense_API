@@ -42,4 +42,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function groups()
+    {
+        return $this->hasMany(Group::class);
+    }
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
 }

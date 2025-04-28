@@ -97,6 +97,12 @@ export const useExpenseStore = defineStore('expenses', () => {
           groups.value[index] = updatedGroup
         }
 
+        expenses.value.forEach((expense) => {
+          if (expense.group_id === groupId) {
+            expense.group.name = newName
+          }
+        })
+
         return { success: true }
       } else {
         return { success: false, message: response.data.message }
@@ -112,7 +118,6 @@ export const useExpenseStore = defineStore('expenses', () => {
   async function deleteGroup(groupId) {
     try {
       await api.delete(`/groups/${groupId}`)
-
       groups.value = groups.value.filter((group) => group.id !== groupId)
       expenses.value = expenses.value.filter((exp) => exp.group_id !== groupId)
 
@@ -137,7 +142,7 @@ export const useExpenseStore = defineStore('expenses', () => {
         group_id,
         date,
       })
-      console.log('Expense added:', response.data.expense)
+      // console.log('Expense added:', response.data.expense)
       expenses.value.push(response.data.expense) // assuming Laravel returns { expense: {...} }
 
       // Optional: Update group timestamp if needed
@@ -173,7 +178,7 @@ export const useExpenseStore = defineStore('expenses', () => {
         // ✅ Replace existing expense by ID
         const index = expenses.value.findIndex((e) => e.id === expenseId)
         // console.log(expenses)
-        console.log('Expense index:', index)
+        // console.log('Expense index:', index)
         if (index !== -1) {
           expenses.value[index] = updatedExpense
         }

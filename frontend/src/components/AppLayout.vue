@@ -9,8 +9,8 @@
         <nav class="app-nav">
           <router-link v-if="isLoggedIn" to="/" class="nav-link">Dashboard</router-link>
           <router-link v-if="isLoggedIn" to="/expenses" class="nav-link">Expenses</router-link>
-          <router-link to="/login" class="nav-link">Login</router-link>
-          <router-link to="/register" class="nav-link">Register</router-link>
+          <router-link v-if="isLoggedIn===false" to="/login" class="nav-link">Login</router-link>
+          <router-link v-if="isLoggedIn===false" to="/register" class="nav-link">Register</router-link>
           <router-link v-if="isLoggedIn" to="/logout" class="nav-link">Logout</router-link>
         </nav>
       </div>
@@ -30,7 +30,11 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useUserStore } from '@/stores/userStore';
 
+const userStore = useUserStore();
+const isLoggedIn = computed(() => userStore.isLoggedIn);
+// console.log('isLoggedIn:', isLoggedIn.value); // Debugging line to check the value of isLoggedIn
 const currentYear = computed(() => new Date().getFullYear());
 </script>
 

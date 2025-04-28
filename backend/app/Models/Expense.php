@@ -10,7 +10,9 @@ class Expense extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'amount', 'group_id', 'date'];
+    protected $guarded = [];
+    
+
 
     protected $casts = [
         'date' => 'date',
@@ -21,4 +23,9 @@ class Expense extends Model
     {
         return $this->belongsTo(Group::class);
     }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+    
 }
