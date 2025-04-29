@@ -14,40 +14,50 @@ export const useExpenseStore = defineStore('expenses', () => {
 
   // Getters
   const totalExpense = computed(() => {
-    return parseFloat(expenses.value.reduce((total, expense) => total + parseFloat(expense.amount), 0).toFixed(2))
+    return parseFloat(
+      expenses.value.reduce((total, expense) => total + parseFloat(expense.amount), 0).toFixed(2),
+    )
   })
 
   const currentMonthExpense = computed(() => {
     const currentMonth = moment().format('YYYY-MM')
-    return parseFloat(expenses.value.reduce((total, expense) => {
-      return moment(expense.date).format('YYYY-MM') === currentMonth ? total + parseFloat(expense.amount) : total
-    }, 0).toFixed(2))
+    return parseFloat(
+      expenses.value
+        .reduce((total, expense) => {
+          return moment(expense.date).format('YYYY-MM') === currentMonth
+            ? total + parseFloat(expense.amount)
+            : total
+        }, 0)
+        .toFixed(2),
+    )
   })
 
   const monthlyExpenseSummary = computed(() => {
     const summary = {}
-    expenses.value.forEach(expense => {
+    expenses.value.forEach((expense) => {
       const monthKey = moment(expense.date).format('YYYY-MM')
       if (!summary[monthKey]) {
         summary[monthKey] = {
           total: 0,
           count: 0,
           month: moment(monthKey).format('MMMM YYYY'),
-          expenses: []
+          expenses: [],
         }
       }
-      summary[monthKey].total = parseFloat((summary[monthKey].total + parseFloat(expense.amount)).toFixed(2))
+      summary[monthKey].total = parseFloat(
+        (summary[monthKey].total + parseFloat(expense.amount)).toFixed(2),
+      )
       summary[monthKey].count++
       summary[monthKey].expenses.push(expense)
     })
-    return Object.values(summary).sort((a, b) => 
-      moment(b.month, 'MMMM YYYY').diff(moment(a.month, 'MMMM YYYY'))
+    return Object.values(summary).sort((a, b) =>
+      moment(b.month, 'MMMM YYYY').diff(moment(a.month, 'MMMM YYYY')),
     )
   })
 
   const highestExpense = computed(() => {
     return expenses.value.reduce((highest, expense) => {
-      return (!highest || expense.amount > highest.amount) ? expense : highest
+      return !highest || expense.amount > highest.amount ? expense : highest
     }, null)
   })
 
@@ -55,17 +65,23 @@ export const useExpenseStore = defineStore('expenses', () => {
   function getMonthlyExpenses(monthStr) {
     return expenses.value
       .filter((exp) => moment(exp.date).format('YYYY-MM') === monthStr)
-      .map(exp => ({
+      .map((exp) => ({
         ...exp,
-        amount: parseFloat(exp.amount)
+        amount: parseFloat(exp.amount),
       }))
       .sort((a, b) => moment(b.date).diff(moment(a.date)))
   }
 
   function getMonthlyTotal(monthStr) {
-    return parseFloat(expenses.value.reduce((total, expense) => {
-      return moment(expense.date).format('YYYY-MM') === monthStr ? total + parseFloat(expense.amount) : total
-    }, 0).toFixed(2))
+    return parseFloat(
+      expenses.value
+        .reduce((total, expense) => {
+          return moment(expense.date).format('YYYY-MM') === monthStr
+            ? total + parseFloat(expense.amount)
+            : total
+        }, 0)
+        .toFixed(2),
+    )
   }
 
   // Actions
@@ -255,6 +271,58 @@ export const useExpenseStore = defineStore('expenses', () => {
     }
   }
 
+  async function exportExpenses() {
+    try {
+      const response = await api.get('/expenses/export', {
+        responseType: 'blob',
+      })
+
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+
+      // Create a link element
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', 'expenses.csv')
+
+      // Append to body, click and remove
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error exporting expenses:', error)
+      return { success: false, message: 'Failed to export expenses' }
+    }
+  }
+
+  async function exportPdf() {
+    try {
+      const response = await api.get('/expenses/export-pdf', {
+        responseType: 'blob',
+      })
+
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+
+      // Create a link element
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', 'expenses.pdf')
+
+      // Append to body, click and remove
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error exporting PDF:', error)
+      return { success: false, message: 'Failed to export PDF' }
+    }
+  }
+
   // Return all the exposed state and functions
   return {
     // State
@@ -279,5 +347,7 @@ export const useExpenseStore = defineStore('expenses', () => {
     deleteExpense,
     fetchGroups,
     fetchExpenses,
+    exportExpenses,
+    exportPdf,
   }
 })

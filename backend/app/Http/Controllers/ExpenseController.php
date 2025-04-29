@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Group;
+use App\Exports\ExpensesExport;
+use App\Exports\ExpensesPdf;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExpenseController extends Controller
 {
@@ -71,7 +74,7 @@ class ExpenseController extends Controller
             'group_id' => 'required|exists:groups,id',
             'date' => 'required|date'
         ]);
-        
+
         $expense->update($validated);
         $expense = Expense::with('group')->find($expense->id);
         return response()->json([
@@ -93,5 +96,16 @@ class ExpenseController extends Controller
         return response()->json([
             'message' => 'Expense deleted successfully.'
         ]);
+    }
+
+    public function export()
+    {
+        return Excel::download(new ExpensesExport, 'expenses.csv');
+    }
+
+    public function exportPdf()
+    {
+        $pdf = (new ExpensesPdf())->generate();
+        return $pdf->download('expenses.pdf');
     }
 }

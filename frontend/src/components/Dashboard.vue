@@ -103,6 +103,8 @@ const formatMonthYear = (monthStr) => {
 
 onMounted(() => {
   selectedMonth.value = moment().format('YYYY-MM')
+  expenseStore.fetchExpenses()
+  expenseStore.fetchGroups()
 })
 </script>
 
