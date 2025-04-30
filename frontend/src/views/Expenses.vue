@@ -46,6 +46,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useExpenseStore } from '../stores/expense.js'
 import GroupForm from '../components/Group/GroupForm.vue'
 import GroupList from '../components/Group/GroupList.vue'
@@ -54,20 +55,37 @@ import ExpenseList from '../components/Expense/ExpenseList.vue'
 import MonthlyExpenses from '../components/Expense/MonthlyExpenses.vue'
 
 const expenseStore = useExpenseStore()
+const { groups } = storeToRefs(expenseStore)
 const groupListRef = ref(null)
 const expenseListRef = ref(null)
 
-const handleGroupSubmit = (groupData) => {
-  // Check if we're editing or adding
-  if (groupData.originalName) {
-    const result = expenseStore.updateGroup(groupData.originalName, groupData.name)
-  } else {
-    const result = expenseStore.addGroup(groupData.name)
+const handleGroupSubmit = async (groupData) => {
+  try {
+    if (groupData.originalName) {
+      const groupToEdit = expenseStore.groups.find((g) => g.name === groupData.originalName)
+      if (groupToEdit) {
+        await expenseStore.editGroup(groupToEdit.id, groupData.originalName, groupData.name)
+        await refreshData()
+      } else {
+        throw new Error('Group not found')
+      }
+    } else {
+      await expenseStore.addGroup(groupData.name)
+      await refreshData()
+    }
+  } catch (error) {
+    console.error('Group operation error:', error)
+    alert(error.response?.data?.message || error.message || 'Failed to handle group operation')
   }
 }
 
-const handleExpenseSubmit = (expenseData) => {
-  const result = expenseStore.addExpense(expenseData)
+const handleExpenseSubmit = async (expenseData) => {
+  try {
+    await expenseStore.addExpense(expenseData)
+    await refreshData()
+  } catch (error) {
+    alert(error.response?.data?.message || 'Failed to create expense')
+  }
 }
 
 const handleGroupEdit = (group) => {
@@ -75,15 +93,14 @@ const handleGroupEdit = (group) => {
 }
 
 const handleGroupDelete = async (groupId) => {
-  const result = await expenseStore.deleteGroup(groupId)
-  if (!result.success) {
-    alert(result.message)
+  try {
+    await expenseStore.deleteGroup(groupId)
+    await refreshData()
+  } catch (error) {
+    console.error('Delete group error:', error)
+    alert(error.response?.data?.message || error.message || 'Failed to delete group')
   }
 }
-
-// const handleGroupDelete = (groupName) => {
-//   groupListRef.value.handleDelete(groupName);
-// };
 
 const handleExpenseEdit = ({ expense }) => {
   // Pass the expense object directly, removing the index
@@ -94,8 +111,9 @@ const handleExpenseDelete = (index) => {
   expenseListRef.value.handleDelete(index)
 }
 
-const refreshData = () => {
-  // Placeholder
+const refreshData = async () => {
+  await expenseStore.fetchGroups()
+  await expenseStore.fetchExpenses()
 }
 
 const handleExport = async () => {
@@ -112,9 +130,9 @@ const handleExportPdf = async () => {
   }
 }
 
-onMounted(() => {
-  expenseStore.fetchGroups()
-  expenseStore.fetchExpenses()
+onMounted(async () => {
+  await expenseStore.fetchGroups()
+  await expenseStore.fetchExpenses()
 })
 </script>
 

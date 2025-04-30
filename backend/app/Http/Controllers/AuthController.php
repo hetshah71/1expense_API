@@ -2,62 +2,69 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 
 use \Illuminate\Support\Facades\Auth;
-
+use App\Http\Requests\LoginRequest;
+//use Illuminate\Support\Facades\Log;
+use App\Http\Requests\RegisterRequest;
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        $credentials = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        try {
+            $credentials = $request->validated();
 
-        $user = User::create($credentials);
+            $user = User::create($credentials);
+            $token = $user->createToken('auth_token')->plainTextToken;
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'user' => $user,
-           'token' => $token,
-           'message' => 'Registration successful'
-        ]);
+            return ApiResponse::success(['token' => $token, 'user'=>$user], "User registered successfully");
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return ApiResponse::error('Validation error', $e->errors(), 422);
+        } catch (\Exception $e) {
+            return ApiResponse::error('Registration failed: ' . $e->getMessage());
+        }
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $credentials = $request->validate([
-            'email' =>'required|string|email',
-            'password' =>'required|string',
-        ]); 
+        try {
+            $credentials = $request->validated();
 
-        if (!Auth::attempt($credentials)) {
-            return response()->json([
-                'type' => 'Error',
-                'message' => 'Invalid credentials'
-            ], 401);
-        } 
-        else {
-            $user = User::where('email', $request->email)->firstOrFail();
-            $token = $user->createToken('auth_token')->plainTextToken;
-            return response()->json([
-                'type' => 'Success',
-                'user' => $user,
-               'token' => $token,
-              'message' => 'Login successful'
-            ]);
+            if (!Auth::attempt($credentials)) {
+                return ApiResponse::error('Invalid credentials', [], 401);
+            }
+
+            else{
+                $user = Auth::user();
+                $token = $user->createToken('auth_token')->plainTextToken;
+                return ApiResponse::success(['token' => $token,'user'=> $user], "Logged in successfully");
+            } 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return ApiResponse::error('Validation error', $e->errors(), 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::error('User not found', [], 404);
+        } catch (\Exception $e) {
+            // \Log::error('Error during login: ' . $e->getMessage());
+            return ApiResponse::error('Login failed: ' . $e->getMessage(), [], 500);
         }
     }
     public function logout()
     {
-        Auth::user()->tokens()->delete();
-        return response()->json([
-            'message' => 'Logout successful'
-        ]);
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                throw new \Exception('User not authenticated');
+            }
+
+            $user->tokens()->delete();
+            return ApiResponse::success([], "Logged out successfully");
+        } catch (\Exception $e) {
+            // \Log::error('Error during logout: ' . $e->getMessage());
+            return  ApiResponse::error('Logout failed: ' . $e->getMessage(), [], 500);
+        }
     }
 }

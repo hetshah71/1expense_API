@@ -34,7 +34,7 @@ import { useUserStore } from '@/stores/userStore';
 
 const userStore = useUserStore();
 const isLoggedIn = computed(() => userStore.isLoggedIn);
-// console.log('isLoggedIn:', isLoggedIn.value); // Debugging line to check the value of isLoggedIn
+console.log('isLoggedIn:', isLoggedIn.value); // Debugging line to check the value of isLoggedIn
 const currentYear = computed(() => new Date().getFullYear());
 </script>
 

@@ -43,11 +43,16 @@ const formdata = reactive({
 
 const handleLogin = async () => {
   try {
-    await userstore.loginuser(formdata);
-    router.push('/');
+    const loginSuccess = await userstore.loginuser(formdata);
+    console.log(loginSuccess)
+    if (loginSuccess) {
+      router.push('/');
+    } else {
+      console.error('Login failed: Invalid credentials');
+    }
   }
   catch (error) {
-    console.error(error); 
+    console.error('Login error:', error);
   }
 };
 </script>

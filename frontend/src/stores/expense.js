@@ -91,7 +91,8 @@ export const useExpenseStore = defineStore('expenses', () => {
     error.value = null
     try {
       const response = await api.get('/groups')
-      groups.value = Array.isArray(response.data) ? response.data : []
+      groups.value = Array.isArray(response.data.data) ? response.data.data : []
+      console.log('Fetched groups:', groups.value)
       return groups.value
     } catch (err) {
       console.error('Error fetching groups:', err)
@@ -106,7 +107,7 @@ export const useExpenseStore = defineStore('expenses', () => {
     error.value = null
     try {
       const response = await api.get('/expenses')
-      expenses.value = Array.isArray(response.data) ? response.data : []
+      expenses.value = Array.isArray(response.data.data) ? response.data.data : []
       return expenses.value
     } catch (err) {
       console.error('Error fetching expenses:', err)
@@ -119,9 +120,33 @@ export const useExpenseStore = defineStore('expenses', () => {
 
   async function addGroup(groupData) {
     try {
-      const response = await api.post('/groups', { name: groupData }) // remove extra wrapper
-      groups.value.push(response.data.group) // Add the new group to the local stat
-      return response.data
+      // Ensure we're sending the data in the correct format
+      const response = await api.post('/groups', {
+        name: typeof groupData === 'string' ? groupData : groupData.name,
+      })
+
+      // Log the response for debugging
+      console.log('Add group response:', response.data)
+
+      // Handle different possible response formats
+      let newGroup
+      if (response.data.data?.group) {
+        newGroup = response.data.data.group
+      } else if (response.data.group) {
+        newGroup = response.data.group
+      } else if (response.data.data) {
+        newGroup = response.data.data
+      } else if (response.data) {
+        newGroup = response.data
+      }
+
+      if (newGroup && (newGroup.id || newGroup._id)) {
+        groups.value.push(newGroup)
+        return newGroup
+      } else {
+        console.error('Invalid group data:', newGroup)
+        throw new Error('Invalid group data received from server')
+      }
     } catch (error) {
       console.error('Error adding group:', error.response?.data || error.message)
       throw error
@@ -130,40 +155,51 @@ export const useExpenseStore = defineStore('expenses', () => {
 
   async function editGroup(groupId, oldName, newName) {
     if (!newName || newName.trim() === '') {
-      return { success: false, message: 'Group name cannot be empty' }
+      throw new Error('Group name cannot be empty')
     }
 
     try {
-      // console.log('Editing group:', groupId, oldName, newName)
       const response = await api.put(`/groups/${groupId}`, {
         name: newName,
       })
 
-      // console.log('Edit group response:', response.data)
-      if (response.data) {
-        // Add the updated group to the local state
-        const updatedGroup = response.data.group
-        // Replace the old group with the updated group in the local array
-        const index = groups.value.findIndex((group) => group.id === updatedGroup.id)
+      // Log the response for debugging
+      console.log('Edit group response:', response.data)
+
+      // Handle different possible response formats
+      let updatedGroup
+      if (response.data.data?.group) {
+        updatedGroup = response.data.data.group
+      } else if (response.data.group) {
+        updatedGroup = response.data.group
+      } else if (response.data.data) {
+        updatedGroup = response.data.data
+      } else if (response.data) {
+        updatedGroup = response.data
+      }
+
+      if (updatedGroup && (updatedGroup.id || updatedGroup._id)) {
+        // Update the group in the local state
+        const index = groups.value.findIndex((group) => group.id === groupId)
         if (index !== -1) {
           groups.value[index] = updatedGroup
         }
 
+        // Update group name in related expenses
         expenses.value.forEach((expense) => {
           if (expense.group_id === groupId) {
-            expense.group.name = newName
+            expense.group = updatedGroup
           }
         })
 
-        return { success: true }
+        return { success: true, group: updatedGroup }
       } else {
-        return { success: false, message: response.data.message }
+        console.error('Invalid group data:', updatedGroup)
+        throw new Error('Invalid group data received from server')
       }
     } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Failed to update group',
-      }
+      console.error('Error editing group:', error.response?.data || error.message)
+      throw error
     }
   }
 
@@ -184,7 +220,7 @@ export const useExpenseStore = defineStore('expenses', () => {
     const { name, amount, group_id, date } = expenseData
 
     if (name.trim() === '' || isNaN(amount) || !group_id || !date) {
-      return { success: false, message: 'Please enter valid expense details' }
+      throw new Error('Please enter valid expense details')
     }
 
     try {
@@ -194,18 +230,37 @@ export const useExpenseStore = defineStore('expenses', () => {
         group_id,
         date,
       })
-      // console.log('Expense added:', response.data.expense)
-      expenses.value.push(response.data.expense) // assuming Laravel returns { expense: {...} }
 
-      // Optional: Update group timestamp if needed
-      const groupObj = groups.value.find((g) => g.id === group_id)
-      if (groupObj) {
-        groupObj.updatedAt = moment().format('YYYY-MM-DD HH:mm:ss')
+      // Log the response for debugging
+      console.log('Add expense response:', response.data)
+
+      // Handle different possible response formats
+      let newExpense
+      if (response.data.data?.expense) {
+        newExpense = response.data.data.expense
+      } else if (response.data.expense) {
+        newExpense = response.data.expense
+      } else if (response.data.data) {
+        newExpense = response.data.data
+      } else if (response.data) {
+        newExpense = response.data
       }
-      return { success: true }
+
+      if (newExpense && (newExpense.id || newExpense._id)) {
+        // Add the group details to the expense object
+        const group = groups.value.find((g) => g.id === group_id)
+        if (group) {
+          newExpense.group = group
+        }
+        expenses.value.push(newExpense)
+        return newExpense
+      } else {
+        console.error('Invalid expense data:', newExpense)
+        throw new Error('Invalid expense data received from server')
+      }
     } catch (error) {
       console.error('Error adding expense:', error.response?.data || error.message)
-      return { success: false, message: 'Failed to add expense.' }
+      throw error
     }
   }
 
@@ -213,7 +268,7 @@ export const useExpenseStore = defineStore('expenses', () => {
     const { name, amount, group_id, date } = updatedExpense
 
     if (name.trim() === '' || isNaN(amount) || !group_id || !date) {
-      return { success: false, message: 'Please enter valid expense details' }
+      throw new Error('Please enter valid expense details')
     }
 
     try {
@@ -223,37 +278,43 @@ export const useExpenseStore = defineStore('expenses', () => {
         group_id,
         date,
       })
-      console.log('Expense updated:', response.data.expense)
-      if (response.data.expense) {
-        const updated = response.data.expense
 
-        // ✅ Replace existing expense by ID
-        const index = expenses.value.findIndex((e) => e.id === expenseId)
-        // console.log(expenses)
-        // console.log('Expense index:', index)
-        if (index !== -1) {
-          expenses.value[index] = updatedExpense
-        }
+      // Log the response for debugging
+      console.log('Edit expense response:', response.data)
 
-        // ✅ Optionally update the group's `updatedAt` field
+      // Handle different possible response formats
+      let updatedExpenseData
+      if (response.data.data?.expense) {
+        updatedExpenseData = response.data.data.expense
+      } else if (response.data.expense) {
+        updatedExpenseData = response.data.expense
+      } else if (response.data.data) {
+        updatedExpenseData = response.data.data
+      } else if (response.data) {
+        updatedExpenseData = response.data
+      }
+
+      if (updatedExpenseData && (updatedExpenseData.id || updatedExpenseData._id)) {
+        // Add the group details to the expense object
         const group = groups.value.find((g) => g.id === group_id)
         if (group) {
-          group.updatedAt = moment().format('YYYY-MM-DD HH:mm:ss')
+          updatedExpenseData.group = group
         }
 
-        return { success: true }
-      } else {
-        return {
-          success: false,
-          message: response.data.message || 'Failed to update expense',
+        // Update the expense in the local state
+        const index = expenses.value.findIndex((expense) => expense.id === expenseId)
+        if (index !== -1) {
+          expenses.value[index] = updatedExpenseData
         }
+
+        return { success: true, expense: updatedExpenseData }
+      } else {
+        console.error('Invalid expense data:', updatedExpenseData)
+        throw new Error('Invalid expense data received from server')
       }
     } catch (error) {
-      console.error('API error while editing expense:', error)
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Failed to update expense',
-      }
+      console.error('Error editing expense:', error.response?.data || error.message)
+      throw error
     }
   }
 
@@ -278,7 +339,7 @@ export const useExpenseStore = defineStore('expenses', () => {
       })
 
       // Create a URL for the blob
-      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const url = window.URL.createObjectURL(new Blob([response.data.data]))
 
       // Create a link element
       const link = document.createElement('a')
@@ -304,7 +365,7 @@ export const useExpenseStore = defineStore('expenses', () => {
       })
 
       // Create a URL for the blob
-      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const url = window.URL.createObjectURL(new Blob([response.data.data]))
 
       // Create a link element
       const link = document.createElement('a')

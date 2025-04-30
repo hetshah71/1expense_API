@@ -2,47 +2,23 @@
   <div class="bg-container">
     <h2 class="text-lg font-semibold mb-4">{{ editMode ? 'Edit Expense' : 'Add Expense' }}</h2>
     <form @submit.prevent="handleSubmit">
-      <InputField
-        id="expenseName"
-        label="Expense Name"
-        v-model="form.name"
-        placeholder="Expense Name"
-        required
-      />
+      <InputField id="expenseName" label="Expense Name" v-model="form.name" placeholder="Expense Name" required />
 
-      <InputField
-        id="expenseAmount"
-        label="Amount"
-        v-model="form.amount"
-        type="number"
-        placeholder="Amount"
-        min="0"
-        step="0.01"
-        required
-      />
+      <InputField id="expenseAmount" label="Amount" v-model="form.amount" type="number" placeholder="Amount" min="0"
+        step="0.01" required />
 
       <div class="form-group">
         <label for="expenseGroup">Group</label>
-        <select
-          id="expenseGroup"
-          v-model="form.group_id"
-          class="form-control"
-          required
-        >
+        <select id="expenseGroup" v-model="form.group_id" class="form-control" required>
           <option value="" disabled>Select a group</option>
-          <option v-for="group in groups" :key="group.id" :value="group.id">
-            {{ group.name }}
+          <option v-for="(group, index) in safeGroups" :key="group ? group.id : `group-${index}`"
+            :value="group ? group.id : ''">
+            {{ group ? group.name : 'Unnamed Group' }}
           </option>
         </select>
       </div>
 
-      <InputField
-        id="expenseDate"
-        label="Date"
-        v-model="form.date"
-        type="date"
-        required
-      />
+      <InputField id="expenseDate" label="Date" v-model="form.date" type="date" required />
 
       <div class="form-actions">
         <Button :variant="editMode ? 'success' : 'primary'" type="submit">
@@ -57,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, onMounted } from 'vue'
+import { ref, defineProps, defineEmits, onMounted, computed } from 'vue'
 import Button from '../Shared/Button.vue'
 import InputField from '../Shared/InputField.vue'
 import moment from 'moment'
@@ -73,7 +49,8 @@ const props = defineProps({
   },
   groups: {
     type: Array,
-    required: true
+    required: true,
+    default: () => []
   }
 })
 
@@ -83,15 +60,23 @@ const form = ref({
   name: '',
   amount: '',
   group_id: '',
-  date:moment().format('YYYY-MM-DD')
+  date: moment().format('YYYY-MM-DD')
 })
 
+// Create a computed property to safely handle potentially invalid groups
+const safeGroups = computed(() => {
+  if (!props.groups) return []
+  return props.groups.filter(group => group != null)
+})
 
 onMounted(() => {
   if (props.editMode && props.expenseData) {
-    form.value = { ...props.expenseData }
-    if (form.value.date) {
-      form.value.date = moment(form.value.date).format('YYYY-MM-DD')
+    // Create a safe copy with defaults for any missing properties
+    form.value = {
+      name: props.expenseData.name || '',
+      amount: props.expenseData.amount || '',
+      group_id: props.expenseData.group_id || '',
+      date: props.expenseData.date ? moment(props.expenseData.date).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
     }
   }
 })
@@ -104,7 +89,7 @@ const handleSubmit = () => {
       name: '',
       amount: '',
       group_id: '',
-      date: ''
+      date: moment().format('YYYY-MM-DD')
     }
   }
 }

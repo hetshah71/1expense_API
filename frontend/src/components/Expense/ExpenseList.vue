@@ -71,13 +71,14 @@ const handleEdit = ({ expense, index }) => {
 };
 
 const handleUpdate = async (updatedExpense) => {
-
-  const result = await expenseStore.editExpense(selectedExpense.value.expense.id, updatedExpense);
-
-  if (result.success) {
+  try {
+    const result = await expenseStore.editExpense(selectedExpense.value.expense.id, updatedExpense);
     showEditModal.value = false;
     selectedExpense.value = null;
     emit('refresh');
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    alert(error.response?.data?.message || error.message || 'Failed to update expense');
   }
 };
 
@@ -86,9 +87,16 @@ const cancelEdit = () => {
   selectedExpense.value = null;
 };
 
-const handleDelete = (expenseId) => {
-  selectedIndex.value = expenseId;
-  showDeleteModal.value = true;
+const handleDelete = async (expenseId) => {
+  try {
+    await expenseStore.deleteExpense(expenseId);
+    showDeleteModal.value = false;
+    selectedIndex.value = null;
+    emit('refresh');
+  } catch (error) {
+    console.error('Error deleting expense:', error);
+    alert(error.response?.data?.message || error.message || 'Failed to delete expense');
+  }
 };
 
 const confirmDelete = () => {

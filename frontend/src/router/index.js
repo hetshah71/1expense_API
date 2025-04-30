@@ -11,6 +11,7 @@ const routes = [
     name: 'Dashboard',
     beforeEnter: async (to, from, next) => {
       const userStore = (await import('@/stores/userStore')).useUserStore()
+      // console.log(userStore.isLoggedIn)
       if (userStore.isLoggedIn) {
         next()
       } else {
